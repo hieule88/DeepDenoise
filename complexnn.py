@@ -409,10 +409,10 @@ def complex_cat(inputs, axis):
     return outputs
 
 if __name__ == '__main__':
-    import dc_crn7 
+    import dc_crn
     torch.manual_seed(20)
-    onet1 = dc_crn7.ComplexConv2d(12,12,kernel_size=(3,2),padding=(2,1))
-    onet2 = dc_crn7.ComplexConvTranspose2d(12,12,kernel_size=(3,2),padding=(2,1))
+    onet1 = dc_crn.ComplexConv2d(12,12,kernel_size=(3,2),padding=(2,1))
+    onet2 = dc_crn.ComplexConvTranspose2d(12,12,kernel_size=(3,2),padding=(2,1))
     inputs = torch.randn([1,12,12,10])
 #    print(onet1.real_kernel[0,0,0,0])
     nnet1 = ComplexConv2d(12,12,kernel_size=(3,2),padding=(2,1),causal=True)

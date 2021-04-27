@@ -1,6 +1,5 @@
 
 
-
 import torch
 import torch.nn as nn
 import numpy as np
@@ -10,7 +9,7 @@ from scipy.signal import get_window
 
 def init_kernels(win_len, win_inc, fft_len, win_type=None, invers=False):
     if win_type == 'None' or win_type is None:
-        window = np.ones(win_len)
+        window = np.ones(win_len) # a window for mel-filter bank
     else:
         window = get_window(win_type, win_len, fftbins=True)#**0.5
     
@@ -51,7 +50,7 @@ class ConvSTFT(nn.Module):
             inputs = torch.unsqueeze(inputs, 1)
         inputs = F.pad(inputs,[self.win_len-self.stride, self.win_len-self.stride])
         outputs = F.conv1d(inputs, self.weight, stride=self.stride)
-         
+        
         if self.feature_type == 'complex':
             return outputs
         else:

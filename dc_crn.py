@@ -5,15 +5,19 @@ import sys
 from show import show_params, show_model
 import torch.nn.functional as F
 from conv_stft import ConvSTFT, ConviSTFT 
-
+from torch.optim import Adam 
 from complexnn import ComplexConv2d, ComplexConvTranspose2d, NavieComplexLSTM, complex_cat, ComplexBatchNorm
-
-
+import data_loader as loader
+from torch.utils.data import DataLoader
+import pickle
+import train_utils
+from si_snr import *
 
 class DCCRN(nn.Module):
 
     def __init__(
                     self, 
+                    batch_size,
                     rnn_layers=2,
                     rnn_units=128,
                     win_len=400,
@@ -24,23 +28,24 @@ class DCCRN(nn.Module):
                     use_clstm=False,
                     use_cbn = False,
                     kernel_size=5,
-                    kernel_num=[16,32,64,128,256,256]
+                    kernel_num=[16,32,64,128,256,256],
                 ):
         ''' 
             
             rnn_layers: the number of lstm layers in the crn,
             rnn_units: for clstm, rnn_units = real+imag
-
         '''
 
         super(DCCRN, self).__init__()
+
+        self.batch_size = batch_size
 
         # for fft 
         self.win_len = win_len
         self.win_inc = win_inc
         self.fft_len = fft_len
         self.win_type = win_type 
-
+        
         input_dim = win_len
         output_dim = win_len
         
@@ -139,8 +144,6 @@ class DCCRN(nn.Module):
                     )
                 )
         
-        show_model(self)
-        show_params(self)
         self.flatten_parameters() 
 
     def flatten_parameters(self): 
@@ -157,6 +160,7 @@ class DCCRN(nn.Module):
         spec_phase = spec_phase
         cspecs = torch.stack([real,imag],1)
         cspecs = cspecs[:,:,1:]
+
         '''
         means = torch.mean(cspecs, [1,2,3], keepdim=True)
         std = torch.std(cspecs, [1,2,3], keepdim=True )
@@ -202,13 +206,21 @@ class DCCRN(nn.Module):
         #    print('decoder', out.size())
         mask_real = out[:,0]
         mask_imag = out[:,1] 
+        
         mask_real = F.pad(mask_real, [0,0,1,0])
         mask_imag = F.pad(mask_imag, [0,0,1,0])
         
         if self.masking_mode == 'E' :
-            mask_mags = (mask_real**2+mask_imag**2)**0.5
-            real_phase = mask_real/(mask_mags+1e-8)
-            imag_phase = mask_imag/(mask_mags+1e-8)
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            alter_zeros = torch.ones([self.batch_size,mask_real.shape[1],mask_real.shape[2]]) * 0.000001
+            alter_zeros = alter_zeros.to(device)
+
+            mask_real= torch.where(mask_real == 0., alter_zeros, mask_real)
+            mask_imag= torch.where(mask_imag == 0., alter_zeros, mask_imag)
+            
+            mask_mags = (mask_real**2+mask_imag**2).pow(0.5)
+            real_phase = (mask_real)/(mask_mags+1e-8)
+            imag_phase = (mask_imag)/(mask_mags+1e-8)
             mask_phase = torch.atan2(
                             imag_phase,
                             real_phase
@@ -227,11 +239,11 @@ class DCCRN(nn.Module):
         
         out_spec = torch.cat([real, imag], 1) 
         out_wav = self.istft(out_spec)
-         
+        
         out_wav = torch.squeeze(out_wav, 1)
         #out_wav = torch.tanh(out_wav)
         out_wav = torch.clamp_(out_wav,-1,1)
-        return out_spec,  out_wav
+        return out_spec, out_wav
 
     def get_params(self, weight_decay=0.0):
             # add L2 penalty
@@ -300,33 +312,38 @@ def test_complex():
     print(out.shape)
 
 if __name__ == '__main__':
-    torch.manual_seed(10)
+
+    root_path = "/storage/hieuld/SpeechEnhancement/DeepComplexCRN/"
+    dns_home = "/data/hieuld/data"  # dir of dns-datas
+    save_file = root_path + "logs"
+
+    
+    train_test = train_utils.get_train_test_name(dns_home)
+    train_noisy_names, train_clean_names, test_noisy_names, test_clean_names = \
+        train_utils.get_all_names(train_test, dns_home=dns_home)
+    noise_names = train_utils.get_noisy_name(dns_home)
+
     torch.autograd.set_detect_anomaly(True)
-    inputs = torch.randn([10,16000*4]).clamp_(-1,1)
-    labels = torch.randn([10,16000*4]).clamp_(-1,1)
+    epochs = 200
+    batch_size = 8
+    lr = 0.001
+
+    data_train = loader.WavDataset(train_noisy_names, train_clean_names, noise_names, 5)
+    data_test = loader.WavDataset(test_noisy_names, test_clean_names, noise_names, 5)
+
+    train_dataloader = DataLoader(data_train, batch_size= batch_size, shuffle= True)
+    test_dataloader = DataLoader(data_test, batch_size= batch_size, shuffle= True)
     
-    '''
-    # DCCRN-E
-    net = DCCRN(rnn_units=256,masking_mode='E')
-    outputs = net(inputs)[1]
-    loss = net.loss(outputs, labels, loss_mode='SI-SNR')
-    print(loss)
+    net = DCCRN(rnn_units=256,masking_mode='E',use_clstm=True,kernel_num=[32, 64, 128, 256, 256,256], batch_size= batch_size)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    net = net.to(device)
+    print(device)
     
-    # DCCRN-R
-    net = DCCRN(rnn_units=256,masking_mode='R')
-    outputs = net(inputs)[1]
-    loss = net.loss(outputs, labels, loss_mode='SI-SNR')
-    print(loss)
-    
-    # DCCRN-C
-    net = DCCRN(rnn_units=256,masking_mode='C')
-    outputs = net(inputs)[1]
-    loss = net.loss(outputs, labels, loss_mode='SI-SNR')
-    print(loss)
-    
-    '''
-    # DCCRN-CL
-    net = DCCRN(rnn_units=256,masking_mode='E',use_clstm=True,kernel_num=[32, 64, 128, 256, 256,256])
-    outputs = net(inputs)[1]
-    loss = net.loss(outputs, labels, loss_mode='SI-SNR')
-    print(loss)
+    optimizer = Adam(net.parameters(), lr= lr)
+    criterion = SiSnr()
+
+    train_utils.train(model=net, optimizer=optimizer, criterion=criterion, train_iter=train_dataloader,
+                  test_iter=test_dataloader, max_epoch=200, device=device, log_path=save_file,
+                  just_test=False)
+
+    print('Finished Training')
