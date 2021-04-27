@@ -4,7 +4,7 @@ import numpy as np
 import os
 from dc_crn import DCCRN
 import torch.nn.functional as F
-
+import math
 # Pre-process
 
 def load_wav(path, sr=16000):
@@ -20,16 +20,15 @@ def padding(noisy_wav):
 
 def _preprocess(file_wav):
     wav = load_wav(file_wav)
-
     batch = []
     miniWav = []
 
     # chia do dai cho 5*16000, duoc so luong cac doan nho do dai bang 5s
-    num_miniWav = wav.shape[0] // max_len + 1
+    num_miniWav = math.ceil(wav.shape[0] / max_len) 
     # gop 8 cai 1 de dua vao mang
-    num_batch = num_miniWav // 8 + 1
+    num_batch = math.ceil(num_miniWav / 8)
     # padding 0 vec to fill up batch
-    res = num_miniWav % 8 
+    res = 8 - (num_miniWav % 8) 
     padding_batch = torch.zeros(max_len)
     for i in range(res):
         miniWav.append(padding_batch.unsqueeze(0))
@@ -52,9 +51,10 @@ def _preprocess(file_wav):
     return batch
 
 def _load_model():
-    model_path = "/storage/hieuld/SpeechEnhancement/DeepComplexCRN/logs"
+    #model_path = "/storage/hieuld/SpeechEnhancement/DeepComplexCRN/logs"
+    model_path = "/home/hieule/DeepDenoise"
     model = DCCRN(rnn_units=256,masking_mode='E',use_clstm=True,kernel_num=[32, 64, 128, 256, 256,256], batch_size= 8)
-    checkpoint = torch.load(os.path.join(model_path, 'parameter_epoch14_2021-04-15 08-03-39.pth' ))
+    checkpoint = torch.load(os.path.join(model_path,'parameter_epoch14_2021-04-15 08-03-39.pth'), map_location=torch.device('cpu'))
     model.load_state_dict(checkpoint['model_state_dict'])
     return model
 

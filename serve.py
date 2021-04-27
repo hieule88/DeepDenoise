@@ -1,45 +1,65 @@
-from flask import Flask, request
+from flask import Flask, request, render_template
 import flask
 import utils 
 import torchaudio
-
+import io
+import os 
 # khoi tao model
 global model 
+
 model = None
 
 # khoi tao flask app
 app = Flask(__name__)
 
 # Khai báo các route 1 cho API
-@app.route("/", methods=["GET"])
-# Khai báo hàm xử lý dữ liệu.
-def _hello_world():
-	return "Hello world"
 
-# khai bao cac route 2 cho API
-@app.route("/predict", methods=["POST"])
-# khai bao ham xu ly du lieu
-def _predict():
-    
-    file = request.files["wav"]
-    wav = io.BytesIO(file)
-    print(wav)
-    return file.filename
-    '''
-    dns_home = "/storage/hieuld/SpeechEnhancement/DeepComplexCRN"
-    denoise = []
-    data = {"success": False}
-    print(request.files["wav"])
-    
-    
-    if request.files.get("wav"):
-        batch = _preprocess(request.files["wav"])
+@app.route('/')
+def upload_form():
+	return render_template('upload_templates/upload.html', audio_path = 'select file to predict!')
+
+@app.route('/', methods=['POST'])
+def get_prediction():
+    print('PREDICT MODE')
+    #dns_home = "/storage/hieuld/SpeechEnhancement/DeepComplexCRN"
+    dns_home = "/home/hieule/DeepDenoise"
+    if request.method == 'POST':
+        _file = request.files['file']
+        if _file.filename == '':
+            return upload_form()
+        print('\n\nfile uploaded:',_file.filename)
+        _file.save(os.path.join(dns_home,'static/upload', _file.filename))
+        print('Write file success!')
+
+        batch = utils._preprocess(os.path.join(dns_home,'static/upload',_file.filename))
+        
+        denoise = []
         for i in range(len(batch)) :
-            denoise[i].append(model(batch[i])[1])
+            denoise.append(model(batch[i])[1])
             torchaudio.save(os.path.join(dns_home, 'denoise_wav_' + i +'.wav'), 
                             denoise[i].unsqueeze(0), sample_rate = 16000)
-        data["success"] = True
-    '''
+        print('Done')
+
+        return render_template('upload_templates/upload.html', audio_path=os.path.join(dns_home, 'static/upload', _file.filename))
+
+# def _predict():
+
+#     file = request.files["wav"]
+#     file.save(os.path.join(dns_home,'upload',file.filename))
+
+#     denoise = []
+#     data = {"success": False}  
+    
+#     batch = utils._preprocess(os.path.join(dns_home,'upload',file.filename))
+#     print(batch.shape)
+#     exit()
+#     for i in range(len(batch)) :
+#         denoise[i].append(model(batch[i])[1])
+#         torchaudio.save(os.path.join(dns_home, 'denoise_wav_' + i +'.wav'), 
+#                         denoise[i].unsqueeze(0), sample_rate = 16000)
+#     data["success"] = True
+    
+#     return 'Done'
 if __name__ == "__main__":
     print("App run!")
     #load model
