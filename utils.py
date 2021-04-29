@@ -6,6 +6,7 @@ from dc_crn import DCCRN
 import torch.nn.functional as F
 import math
 # Pre-process
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu") 
 
 def load_wav(path, sr=16000):
     signal, _ = lib.load(path, sr=sr)
@@ -30,14 +31,15 @@ def _preprocess(file_wav):
     # padding 0 vec to fill up batch
     res = 8 - (num_miniWav % 8) 
     padding_batch = torch.zeros(max_len)
-    for i in range(res):
-        miniWav.append(padding_batch.unsqueeze(0))
 
     if num_miniWav > 1 :
         for j in range(num_miniWav-1):
             miniWav.append(wav[j*max_len : (j+1)*max_len].unsqueeze(0)) 
     need_add = wav[(num_miniWav-1)*max_len:]
     miniWav.append(padding(need_add).unsqueeze(0))
+
+    for i in range(res):
+        miniWav.append(padding_batch.unsqueeze(0))
 
     for i in range(num_batch):
         tmp_1 = torch.cat((miniWav[i*8+0],miniWav[i*8+1]))
@@ -46,17 +48,32 @@ def _preprocess(file_wav):
         tmp_4 = torch.cat((miniWav[i*8+6],miniWav[i*8+7]))
         tmp12 = torch.cat((tmp_1,tmp_2))
         tmp34 = torch.cat((tmp_3,tmp_4))
-        batch.append(torch.cat((tmp12,tmp34)))
+        batch.append(torch.cat((tmp12,tmp34)).to(device))
 
-    return batch
+    return batch, wav.shape[0]
 
 def _load_model():
-    #model_path = "/storage/hieuld/SpeechEnhancement/DeepComplexCRN/logs"
-    model_path = "/home/hieule/DeepDenoise"
+    model_path = "/storage/hieuld/SpeechEnhancement/DeepComplexCRN/logs"
+    #model_path = "/home/hieule/DeepDenoise"
     model = DCCRN(rnn_units=256,masking_mode='E',use_clstm=True,kernel_num=[32, 64, 128, 256, 256,256], batch_size= 8)
-    checkpoint = torch.load(os.path.join(model_path,'parameter_epoch14_2021-04-15 08-03-39.pth'), map_location=torch.device('cpu'))
+    checkpoint = torch.load(os.path.join(model_path,'parameter_epoch14_2021-04-15 08-03-39.pth'))
     model.load_state_dict(checkpoint['model_state_dict'])
+    model.eval()
+    model.to(device)
     return model
 
+def combine_Out(batch, len_input, model):
+
+    denoise = model(batch[0])[1]
+    denoise_ftl = denoise.reshape(1, 640000)
+    if len(batch) > 1:
+
+        for i in range(1, len(batch)) :
+            
+            denoise = model(batch[i])[1].reshape(1,640000)
+
+            denoise_ftl = torch.cat((denoise_ftl,denoise), -1)
+
+    return denoise_ftl[:,:len_input]
 
 

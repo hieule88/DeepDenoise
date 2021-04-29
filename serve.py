@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, send_file
 import flask
 import utils 
 import torchaudio
@@ -8,6 +8,9 @@ import os
 global model 
 
 model = None
+
+dns_home = "/storage/hieuld/SpeechEnhancement/DeepDenoise"
+#dns_home = "/home/hieule/DeepDenoise"
 
 # khoi tao flask app
 app = Flask(__name__)
@@ -21,26 +24,30 @@ def upload_form():
 @app.route('/', methods=['POST'])
 def get_prediction():
     print('PREDICT MODE')
-    #dns_home = "/storage/hieuld/SpeechEnhancement/DeepComplexCRN"
-    dns_home = "/home/hieule/DeepDenoise"
+    dns_home = "/storage/hieuld/SpeechEnhancement/DeepDenoise"
+    #dns_home = "/home/hieule/DeepDenoise"
     if request.method == 'POST':
         _file = request.files['file']
         if _file.filename == '':
             return upload_form()
-        print('\n\nfile uploaded:',_file.filename)
-        _file.save(os.path.join(dns_home,'static/upload', _file.filename))
+        print('\n\nfile uploaded:',_file.filename) 
+        _file.save(os.path.join(dns_home,'static/upload', _file.filename)) 
         print('Write file success!')
 
-        batch = utils._preprocess(os.path.join(dns_home,'static/upload',_file.filename))
+        batch, len_input = utils._preprocess(os.path.join(dns_home,'static/upload',_file.filename))
         
-        denoise = []
-        for i in range(len(batch)) :
-            denoise.append(model(batch[i])[1])
-            torchaudio.save(os.path.join(dns_home, 'denoise_wav_' + i +'.wav'), 
-                            denoise[i].unsqueeze(0), sample_rate = 16000)
-        print('Done')
+        denoise_flt = utils.combine_Out(batch, len_input,model)
+        
+        torchaudio.save(os.path.join(dns_home, 'denoised', _file.filename +'.wav'), 
+                            denoise_flt, sample_rate = 16000)
 
-        return render_template('upload_templates/upload.html', audio_path=os.path.join(dns_home, 'static/upload', _file.filename))
+        print('Done')        
+        try :
+            return send_file(os.path.join(dns_home, 'denoised', _file.filename +'.wav'))
+        except Exception as e:
+            return str(e)
+
+    #        return render_template('upload_templates/upload.html', audio_path=os.path.join(dns_home, 'static/upload', _file.filename))
 
 # def _predict():
 
@@ -62,6 +69,7 @@ def get_prediction():
 #     return 'Done'
 if __name__ == "__main__":
     print("App run!")
+
     #load model
     model = utils._load_model()    
     app.run(debug=True, threaded=False)
