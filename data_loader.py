@@ -7,7 +7,7 @@ import train_utils
 from torch.utils.data import DataLoader
 import random
 import torch.nn.functional as F
-
+import torchaudio
 
 
 def load_wav(path):

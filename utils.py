@@ -5,6 +5,8 @@ import os
 from dc_crn import DCCRN
 import torch.nn.functional as F
 import math
+import gc
+
 # Pre-process
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu") 
 
@@ -19,7 +21,7 @@ def padding(noisy_wav):
     noisy_wav_padding = F.pad(input=noisy_wav, pad=(0,res), mode='constant', value=0)
     return noisy_wav_padding
 
-def _preprocess(file_wav):
+def _process(file_wav, model):
     wav = load_wav(file_wav)
     batch = []
     miniWav = []
@@ -41,16 +43,31 @@ def _preprocess(file_wav):
     for i in range(res):
         miniWav.append(padding_batch.unsqueeze(0))
 
-    for i in range(num_batch):
-        tmp_1 = torch.cat((miniWav[i*8+0],miniWav[i*8+1]))
-        tmp_2 = torch.cat((miniWav[i*8+2],miniWav[i*8+3]))
-        tmp_3 = torch.cat((miniWav[i*8+4],miniWav[i*8+5]))
-        tmp_4 = torch.cat((miniWav[i*8+6],miniWav[i*8+7]))
-        tmp12 = torch.cat((tmp_1,tmp_2))
-        tmp34 = torch.cat((tmp_3,tmp_4))
-        batch.append(torch.cat((tmp12,tmp34)).to(device))
+    tmp_1 = torch.cat((miniWav[0],miniWav[1]))
+    tmp_2 = torch.cat((miniWav[2],miniWav[3]))
+    tmp_3 = torch.cat((miniWav[4],miniWav[5]))
+    tmp_4 = torch.cat((miniWav[6],miniWav[7]))
+    tmp12 = torch.cat((tmp_1,tmp_2))
+    tmp34 = torch.cat((tmp_3,tmp_4))
+    tmp = torch.cat((tmp12,tmp34)).to(device)
+    with torch.no_grad():
+        denoise_flt = model(tmp).reshape(1,640000).to('cpu')
 
-    return batch, wav.shape[0]
+    if num_batch > 1:
+        for i in range(1,num_batch):
+            tmp_1 = torch.cat((miniWav[i*8+0],miniWav[i*8+1]))
+            tmp_2 = torch.cat((miniWav[i*8+2],miniWav[i*8+3]))
+            tmp_3 = torch.cat((miniWav[i*8+4],miniWav[i*8+5]))
+            tmp_4 = torch.cat((miniWav[i*8+6],miniWav[i*8+7]))
+            tmp12 = torch.cat((tmp_1,tmp_2))
+            tmp34 = torch.cat((tmp_3,tmp_4))
+            tmp = torch.cat((tmp12,tmp34)).to(device)
+            with torch.no_grad():
+                denoise = model(tmp).reshape(1,640000).to('cpu')
+            
+            denoise_flt = torch.cat((denoise_flt,denoise), -1)
+
+    return denoise_flt
 
 def _load_model():
     model_path = "/storage/hieuld/SpeechEnhancement/DeepComplexCRN/logs"

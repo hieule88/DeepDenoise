@@ -10,3 +10,6 @@ multipart_data = MultipartEncoder(
     
 response = requests.post('http://localhost:5000', data=multipart_data,
                   headers={'Content-Type': multipart_data.content_type})
+
+with open("a.wav", "wb") as f:
+    f.write(response.content)

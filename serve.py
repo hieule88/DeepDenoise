@@ -34,16 +34,16 @@ def get_prediction():
         _file.save(os.path.join(dns_home,'static/upload', _file.filename)) 
         print('Write file success!')
 
-        batch, len_input = utils._preprocess(os.path.join(dns_home,'static/upload',_file.filename))
+        denoise_flt = utils._process(os.path.join(dns_home,'static/upload',_file.filename), model)
         
-        denoise_flt = utils.combine_Out(batch, len_input,model)
+        #denoise_flt = utils.combine_Out(batch, len_input,model)
         
-        torchaudio.save(os.path.join(dns_home, 'denoised', _file.filename +'.wav'), 
+        torchaudio.save(os.path.join(dns_home, 'denoised','denoised_' + _file.filename), 
                             denoise_flt, sample_rate = 16000)
 
         print('Done')        
         try :
-            return send_file(os.path.join(dns_home, 'denoised', _file.filename +'.wav'))
+            return send_file(os.path.join(dns_home, 'denoised','denoised_' + _file.filename), as_attachment=True)
         except Exception as e:
             return str(e)
 

@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 import pickle
 import train_utils
 from si_snr import *
+import gc
 
 class DCCRN(nn.Module):
 
@@ -225,7 +226,8 @@ class DCCRN(nn.Module):
                             imag_phase,
                             real_phase
                         ) 
-
+            del alter_zeros
+            gc.collect()
             #mask_mags = torch.clamp_(mask_mags,0,100) 
             mask_mags = torch.tanh(mask_mags)
             est_mags = mask_mags*spec_mags 
@@ -243,7 +245,7 @@ class DCCRN(nn.Module):
         out_wav = torch.squeeze(out_wav, 1)
         #out_wav = torch.tanh(out_wav)
         out_wav = torch.clamp_(out_wav,-1,1)
-        return out_spec, out_wav
+        return out_wav
 
     def get_params(self, weight_decay=0.0):
             # add L2 penalty
