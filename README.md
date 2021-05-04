@@ -1,10 +1,10 @@
-ENVIROMENT:
+# ENVIROMENT
 
 pip install asteroid
 torch==1.8.0
 librosa==0.8.0
 
-HOW TO RUN :
+# HOW TO RUN:
 Step 1:
 Run serve.py
 
@@ -21,7 +21,7 @@ multipart_data = MultipartEncoder(
 response = requests.post('http://localhost:5000', data=multipart_data,
                   headers={'Content-Type': multipart_data.content_type})
 
-# write denoised wav to a.wav
+# Write denoised wav to a.wav
 with open("a.wav", "wb") as f:
     f.write(response.content)
     
