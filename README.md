@@ -9,7 +9,7 @@ Step 1:
 Run serve.py
 
 Step 2:
-In the client.py file:
+In the client.py file change the Inputfile.wav to your Input dir:
 
 multipart_data = MultipartEncoder(
     fields={
