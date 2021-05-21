@@ -69,11 +69,11 @@ def _process(file_wav, model):
 
     return denoise_flt
 
-def _load_model():
-    model_path = "/storage/hieuld/SpeechEnhancement/DeepComplexCRN/logs"
+def _load_model(model_path):
+    #model_path = "/storage/hieuld/SpeechEnhancement/DeepComplexCRN/logs"
     #model_path = "/home/hieule/DeepDenoise"
     model = DCCRN(rnn_units=256,masking_mode='E',use_clstm=True,kernel_num=[32, 64, 128, 256, 256,256], batch_size= 8)
-    checkpoint = torch.load(os.path.join(model_path,'parameter_epoch14_2021-04-15 08-03-39.pth'))
+    checkpoint = torch.load(model_path)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
     model.to(device)
