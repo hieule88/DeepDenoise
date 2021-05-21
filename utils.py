@@ -25,7 +25,7 @@ def _process(file_wav, model):
     wav = load_wav(file_wav)
     batch = []
     miniWav = []
-
+    len_input = wav.shape[0]
     # chia do dai cho 5*16000, duoc so luong cac doan nho do dai bang 5s
     num_miniWav = math.ceil(wav.shape[0] / max_len) 
     # gop 8 cai 1 de dua vao mang
@@ -67,7 +67,7 @@ def _process(file_wav, model):
             
             denoise_flt = torch.cat((denoise_flt,denoise), -1)
 
-    return denoise_flt
+    return denoise_flt[:,:len_input]
 
 def _load_model(model_path):
     #model_path = "/storage/hieuld/SpeechEnhancement/DeepComplexCRN/logs"
