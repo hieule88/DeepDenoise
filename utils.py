@@ -51,7 +51,7 @@ def _process(file_wav, model):
     tmp34 = torch.cat((tmp_3,tmp_4))
     tmp = torch.cat((tmp12,tmp34)).to(device)
     with torch.no_grad():
-        denoise_flt = model(tmp).reshape(1,640000).to('cpu')
+        denoise_flt = model(tmp).to('cpu').reshape(1,640000)
 
     if num_batch > 1:
         for i in range(1,num_batch):
@@ -63,7 +63,7 @@ def _process(file_wav, model):
             tmp34 = torch.cat((tmp_3,tmp_4))
             tmp = torch.cat((tmp12,tmp34)).to(device)
             with torch.no_grad():
-                denoise = model(tmp).reshape(1,640000).to('cpu')
+                denoise = model(tmp).to('cpu').reshape(1,640000)
             
             denoise_flt = torch.cat((denoise_flt,denoise), -1)
 
