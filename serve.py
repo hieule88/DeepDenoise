@@ -68,12 +68,14 @@ def get_prediction():
     
 #     return 'Done'
 
-# if __name__ == "__main__":
-#     print("App run!")
+if __name__ == "__main__":
+    print("App run!")
 
-#     #load model
-#     model = utils._load_model()    
-#     app.run(debug=True, threaded=False)
+	#load model
+    port = 5000
+    host = '0.0.0.0'
+    model = utils._load_model()    
+    app.run(debug=False, port = port, host= host, threaded=False)
 
 
 #curl -X POST -F wav='/storage/hieuld/SpeechEnhancement/DeepComplexCRN/test.wav' 'http://127.0.0.1:5000/predict'
