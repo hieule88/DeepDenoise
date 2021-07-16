@@ -1,7 +1,7 @@
 import sys
 import utils 
 import torchaudio
-import os 
+import time
 from argparse import ArgumentParser
 
 # argparser = ArgumentParser('test_manager.py -ts test_suite')
@@ -11,18 +11,17 @@ from argparse import ArgumentParser
 # runner(test_suite_name)
 # model_path = 
 # model = utils._load_model(model_path) 
-def get_prediction(wav_file, model, save_folder):
-    print('PREDICT MODE')
-    #dns_home = "/home/hieule/DeepDenoise"
+def get_prediction(wav_file, model, save_folder = None):
+    start = time.perf_counter()
     denoise_flt = utils._process(wav_file, model)
+    # torchaudio.save(os.path.join(dns_home, 'denoised','denoised_' + '.wav'), 
+    #                     denoise_flt, sample_rate = 16000)
     
-    torchaudio.save(os.path.join(save_folder,'denoised_' + wav_file.split('/')[-1]), 
-                        denoise_flt, sample_rate = 16000)
     return denoise_flt
 
 if __name__ == '__main__':
     file = sys.argv[1]
     model_path = sys.argv[2]
     model = utils._load_model(model_path) 
-    save_folder = sys.argv[3]
-    get_prediction(file, model, save_folder)
+    # save_folder = sys.argv[3]
+    get_prediction(file, model)

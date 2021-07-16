@@ -8,7 +8,7 @@ multipart_data = MultipartEncoder(
            }
     )
     
-response = requests.post('http://localhost:5000', data=multipart_data,
+response = requests.post('172.26.33.199:5000', data=multipart_data,
                   headers={'Content-Type': multipart_data.content_type})
 
 with open("a.wav", "wb") as f:
