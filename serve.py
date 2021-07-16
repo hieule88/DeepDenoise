@@ -49,24 +49,6 @@ def get_prediction():
 
     #        return render_template('upload_templates/upload.html', audio_path=os.path.join(dns_home, 'static/upload', _file.filename))
 
-# def _predict():
-
-#     file = request.files["wav"]
-#     file.save(os.path.join(dns_home,'upload',file.filename))
-
-#     denoise = []
-#     data = {"success": False}  
-    
-#     batch = utils._preprocess(os.path.join(dns_home,'upload',file.filename))
-#     print(batch.shape)
-#     exit()
-#     for i in range(len(batch)) :
-#         denoise[i].append(model(batch[i])[1])
-#         torchaudio.save(os.path.join(dns_home, 'denoise_wav_' + i +'.wav'), 
-#                         denoise[i].unsqueeze(0), sample_rate = 16000)
-#     data["success"] = True
-    
-#     return 'Done'
 
 if __name__ == "__main__":
     print("App run!")
@@ -77,5 +59,3 @@ if __name__ == "__main__":
     model = utils._load_model()    
     app.run(debug=False, port = port, host= host, threaded=False)
 
-
-#curl -X POST -F wav='/storage/hieuld/SpeechEnhancement/DeepComplexCRN/test.wav' 'http://127.0.0.1:5000/predict'

@@ -4,7 +4,7 @@ from requests_toolbelt.multipart.encoder import MultipartEncoder
 multipart_data = MultipartEncoder(
     fields={
             # a file upload field
-            'file': ('videoplayback.wav', open('videoplayback.wav', 'rb'))
+            'file': ('NoisedFile.wav', open('videoplayback.wav', 'rb'))
            }
     )
     
