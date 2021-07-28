@@ -1,3 +1,4 @@
+# USING DCCRN
 # ENVIROMENT
 
 pip install asteroid
@@ -10,16 +11,6 @@ Run serve.py
 
 # Step 2:
 In the client.py file change the Inputfile.wav to your Input dir:
-
-multipart_data = MultipartEncoder(
-    fields={
-            # a file upload field
-            # Input file
-            'file': ('Inputfile.wav', open('Inputfile.wav', 'rb'))
-           }
-    )
-response = requests.post('http://localhost:5000', data=multipart_data,
-                  headers={'Content-Type': multipart_data.content_type})
 
 # Write denoised wav to a.wav
 with open("a.wav", "wb") as f:
